@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 class Layer:
     def __init__(self,input_size,output_size,activation_func="relu"):
@@ -39,7 +40,7 @@ class Activation:
 class Network:
     def __init__(self,layers_sizes) -> None:
         self.layers = [Layer(layers_sizes[i], layers_sizes[i+1]) for i in range(len(layers_sizes)-1)]
-        self.layers[-1].activation_func = "softmax"
+        self.layers[-1].activation_func = "sigmoid"
         self.actv = Activation()
         
     def feed_forward(self,a):
@@ -49,24 +50,32 @@ class Network:
             layer.activations = a
         return a
 
-    def loss(self, actual, predicted):
+    def mse_loss(self, actual, predicted):
         squared_error = (predicted - actual) ** 2
         sum_squared_error = np.sum(squared_error, axis=0)
         mean_squared_error = np.mean(sum_squared_error)
         
         return mean_squared_error
+    
+    def cross_entropy_loss(self, actual, predicted):
+        epsilon = 1e-12  # To prevent log(0)
+        predicted = np.clip(predicted, epsilon, 1. - epsilon)
 
-    def mse_gradient(self,actual,predicted,n):
-        return 2*(predicted - actual) / n
+        return np.sum(-np.sum(actual * np.log(predicted),axis=0)) / actual.shape[1]
 
-    def backpropagate(self, actual, a, n):
+    def mse_gradient(self,actual,predicted):
+        return 2*(predicted - actual) / len(actual[1])
+    
+    def CE_gradient(self,predicted):
+        return -1/predicted
+
+    def backpropagate(self, actual, a):
         lr = 0.01
         epochs = 3000
     
         for e in range(epochs):
             predicted = self.feed_forward(a)
-            delta = self.mse_gradient(actual, predicted, n)
-            
+            delta = self.CE_gradient(predicted)
             for i, layer in reversed(list(enumerate(self.layers))):
 
                 if i > 0:
@@ -74,7 +83,7 @@ class Network:
                 else:
                     prev_activations = a  # Input activations
 
-                delta = delta * self.actv.derivative(layer.activation_func,layer.activations,actual)
+                delta = delta * self.actv.derivative(layer.activation_func,layer.weighted_inputs,actual)
 
                 layer.gradientW = np.dot(delta,prev_activations.T)
                 layer.gradientB = np.sum(delta,axis=1,keepdims=True)
@@ -85,8 +94,8 @@ class Network:
                 
                 delta = np.dot(layer.weights.T,delta)
             
-            loss = self.loss(actual, predicted)
-            if e % 1000 == 0:
+            loss = self.cross_entropy_loss(actual, predicted)
+            if e % 100 == 0:
                 print(f"epoch {e} | loss = {loss}")   
      
     def save_model(self, file_prefix='model'):
