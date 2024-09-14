@@ -2,7 +2,7 @@ import numpy as np
 import os
 
 class Layer:
-    def __init__(self,input_size,output_size,activation_func="relu"):
+    def __init__(self,input_size,output_size,activation_func="sigmoid"):
         self.activation_func = activation_func
         self.weights = np.round(np.random.randn(output_size,input_size))
         self.biases = np.zeros((output_size,1))
@@ -29,18 +29,16 @@ class Activation:
         exp_values = np.exp(x - np.max(x, axis=0, keepdims=True))
         return exp_values / np.sum(exp_values, axis=0, keepdims=True)
 
-    def derivative(self,func,x,y=None):
+    def derivative(self,func,x):
         if func == "relu":
             return np.where(x > 0, 1, 0)
         elif func == "sigmoid":
             return self.sigmoid(x)*(1-self.sigmoid(x))
-        elif func == "softmax":
-            return x-y
         
 class Network:
     def __init__(self,layers_sizes) -> None:
         self.layers = [Layer(layers_sizes[i], layers_sizes[i+1]) for i in range(len(layers_sizes)-1)]
-        self.layers[-1].activation_func = "sigmoid"
+        self.layers[-1].activation_func = "softmax"
         self.actv = Activation()
         
     def feed_forward(self,a):
@@ -60,22 +58,22 @@ class Network:
     def cross_entropy_loss(self, actual, predicted):
         epsilon = 1e-12  # To prevent log(0)
         predicted = np.clip(predicted, epsilon, 1. - epsilon)
-
+        
         return np.sum(-np.sum(actual * np.log(predicted),axis=0)) / actual.shape[1]
 
     def mse_gradient(self,actual,predicted):
         return 2*(predicted - actual) / len(actual[1])
-    
-    def CE_gradient(self,predicted):
-        return -1/predicted
 
     def backpropagate(self, actual, a):
-        lr = 0.01
-        epochs = 3000
-    
+        lr = 0.001
+        epochs = 3100
+
         for e in range(epochs):
             predicted = self.feed_forward(a)
-            delta = self.CE_gradient(predicted)
+
+            # Cross-entropy gradient for softmax output
+            delta = predicted - actual  # Proper gradient for softmax + cross-entropy
+
             for i, layer in reversed(list(enumerate(self.layers))):
 
                 if i > 0:
@@ -83,20 +81,27 @@ class Network:
                 else:
                     prev_activations = a  # Input activations
 
-                delta = delta * self.actv.derivative(layer.activation_func,layer.weighted_inputs,actual)
+                # Only apply the activation function's derivative for hidden layers, not the output
+                if i < len(self.layers) - 1:
+                    delta = delta * self.actv.derivative(layer.activation_func, layer.weighted_inputs)
 
-                layer.gradientW = np.dot(delta,prev_activations.T)
-                layer.gradientB = np.sum(delta,axis=1,keepdims=True)
+                layer.gradientW = np.dot(delta, prev_activations.T)
+                layer.gradientB = np.sum(delta, axis=1, keepdims=True)
 
-
+                # Update weights and biases
                 layer.weights -= lr * layer.gradientW
                 layer.biases -= lr * layer.gradientB
-                
-                delta = np.dot(layer.weights.T,delta)
-            
-            loss = self.cross_entropy_loss(actual, predicted)
-            if e % 100 == 0:
-                print(f"epoch {e} | loss = {loss}")   
+
+
+                # Backpropagate delta to the previous layer
+                delta = np.dot(layer.weights.T, delta)
+
+            if e % 1000 == 0:
+                loss = self.cross_entropy_loss(actual, predicted)
+                print(f"epoch {e} | loss = {loss}")
+                #for l in self.layers:
+                    #print(e,"\n",l.weights)
+
      
     def save_model(self, file_prefix='model'):
         os.mkdir("model")
