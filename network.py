@@ -71,8 +71,7 @@ class Network:
         for e in range(epochs):
             predicted = self.feed_forward(a)
 
-            # Cross-entropy gradient for softmax output
-            delta = predicted - actual  # Proper gradient for softmax + cross-entropy
+            delta = predicted - actual  # gradient for softmax + cross-entropy
 
             for i, layer in reversed(list(enumerate(self.layers))):
 
@@ -92,15 +91,11 @@ class Network:
                 layer.weights -= lr * layer.gradientW
                 layer.biases -= lr * layer.gradientB
 
-
-                # Backpropagate delta to the previous layer
                 delta = np.dot(layer.weights.T, delta)
 
             if e % 1000 == 0:
                 loss = self.cross_entropy_loss(actual, predicted)
                 print(f"epoch {e} | loss = {loss}")
-                #for l in self.layers:
-                    #print(e,"\n",l.weights)
 
      
     def save_model(self, file_prefix='model'):
