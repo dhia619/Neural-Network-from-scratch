@@ -64,40 +64,45 @@ class Network:
     def mse_gradient(self,actual,predicted):
         return 2*(predicted - actual) / len(actual[1])
 
-    def backpropagate(self, actual, a):
-        lr = 0.001
-        epochs = 3100
+    def backpropagate(self, actual, a,lr):
+        predicted = self.feed_forward(a)
 
-        for e in range(epochs):
-            predicted = self.feed_forward(a)
+        delta = predicted - actual  # gradient for softmax + cross-entropy
 
-            delta = predicted - actual  # gradient for softmax + cross-entropy
+        for i, layer in reversed(list(enumerate(self.layers))):
 
-            for i, layer in reversed(list(enumerate(self.layers))):
+            if i > 0:
+                prev_activations = self.layers[i-1].activations
+            else:
+                prev_activations = a  # Input activations
 
-                if i > 0:
-                    prev_activations = self.layers[i-1].activations
-                else:
-                    prev_activations = a  # Input activations
+            # Only apply the activation function's derivative for hidden layers, not the output
+            if i < len(self.layers) - 1:
+                delta = delta * self.actv.derivative(layer.activation_func, layer.weighted_inputs)
 
-                # Only apply the activation function's derivative for hidden layers, not the output
-                if i < len(self.layers) - 1:
-                    delta = delta * self.actv.derivative(layer.activation_func, layer.weighted_inputs)
+            layer.gradientW = np.dot(delta, prev_activations.T)
+            layer.gradientB = np.sum(delta, axis=1, keepdims=True)
 
-                layer.gradientW = np.dot(delta, prev_activations.T)
-                layer.gradientB = np.sum(delta, axis=1, keepdims=True)
+            # Update weights and biases
+            layer.weights -= lr * layer.gradientW
+            layer.biases -= lr * layer.gradientB
 
-                # Update weights and biases
-                layer.weights -= lr * layer.gradientW
-                layer.biases -= lr * layer.gradientB
+            delta = np.dot(layer.weights.T, delta)
 
-                delta = np.dot(layer.weights.T, delta)
+    def train(self,X,Y,learnRate=0.001,epochs=1000,batch_size=100,show_training_progress=False,show_training_progress_rate=100):
+        for epoch in range(epochs):
+            shuffled_X,shuffled_Y = self.shuffle_data(X,Y)
+            for i in range(0,X.shape[0],batch_size):
+                X_batch = shuffled_X[:,i:i+batch_size]
+                Y_batch = shuffled_Y[:,i:i+batch_size]
 
-            if e % 1000 == 0:
-                loss = self.cross_entropy_loss(actual, predicted)
-                print(f"epoch {e} | loss = {loss}")
+                self.backpropagate(Y_batch, X_batch,learnRate)
 
-     
+            if show_training_progress:
+                if epoch % show_training_progress_rate == 0:
+                    loss = self.cross_entropy_loss(Y, self.feed_forward(X))
+                    print(f"Epoch {epoch}, Loss: {loss}")
+
     def save_model(self, file_prefix='model'):
         os.mkdir("model")
         os.chdir("model")
@@ -110,3 +115,16 @@ class Network:
         for i, layer in enumerate(self.layers):
             layer.weights = np.load(f'{file_prefix}_weights_{i}.npy')
             layer.biases = np.load(f'{file_prefix}_biases_{i}.npy')
+
+    def shuffle_data(self, X, Y):
+        # X: features (input data)
+        # Y: labels (output data)
+        
+        # Generate a permutation of indices
+        permutation = np.random.permutation(X.shape[1])  # Assuming data is in column-major form (features, examples)
+        
+        # Shuffle both X and Y using the permutation
+        X_shuffled = X[:, permutation]
+        Y_shuffled = Y[:, permutation]
+        
+        return X_shuffled, Y_shuffled
