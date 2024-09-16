@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 
 class Layer:
     def __init__(self,input_size,output_size,activation_func="sigmoid"):
@@ -89,32 +90,83 @@ class Network:
 
             delta = np.dot(layer.weights.T, delta)
 
-    def train(self,X,Y,learnRate=0.001,epochs=1000,batch_size=100,show_training_progress=False,show_training_progress_rate=100):
+    def train(self, X, Y, learnRate=0.001, epochs=1000, batch_size=100, show_training_progress=False, show_training_progress_rate=100):
+        accuracies = []
+        losses = []
+
         for epoch in range(epochs):
-            shuffled_X,shuffled_Y = self.shuffle_data(X,Y)
-            for i in range(0,X.shape[0],batch_size):
-                X_batch = shuffled_X[:,i:i+batch_size]
-                Y_batch = shuffled_Y[:,i:i+batch_size]
+            shuffled_X, shuffled_Y = self.shuffle_data(X, Y)
 
-                self.backpropagate(Y_batch, X_batch,learnRate)
+            # Loop through mini-batches
+            for i in range(0, X.shape[1], batch_size):
+                X_batch = shuffled_X[:, i:i + batch_size]
+                Y_batch = shuffled_Y[:, i:i + batch_size]
 
+                # Perform backpropagation and update weights
+                self.backpropagate(Y_batch, X_batch, learnRate)
+
+            # After each epoch, calculate loss and accuracy
             if show_training_progress:
-                if epoch % show_training_progress_rate == 0:
-                    loss = self.cross_entropy_loss(Y, self.feed_forward(X))
-                    print(f"Epoch {epoch}, Loss: {loss}")
+                predicted = self.feed_forward(X)
+                accuracy = self.calculate_accuracy(Y, predicted)
+                loss = self.cross_entropy_loss(Y, predicted)
 
-    def save_model(self, file_prefix='model'):
-        os.mkdir("model")
-        os.chdir("model")
+                accuracies.append(accuracy)
+                losses.append(loss)
+
+                # Print progress at the specified interval
+                if epoch % show_training_progress_rate == 0:
+                    print(f"Epoch {epoch}, Loss: {loss}, Accuracy: {accuracy}")
+
+        # Plotting the training progress after all epochs
+        if show_training_progress:
+            plt.figure(figsize=(12, 5))
+
+            # Plot accuracy
+            plt.subplot(1, 2, 1)
+            plt.plot(range(epochs), accuracies, label="Accuracy")
+            plt.xlabel("Epochs")
+            plt.ylabel("Accuracy")
+            plt.title("Accuracy Over Time")
+            plt.legend()
+
+            # Plot loss
+            plt.subplot(1, 2, 2)
+            plt.plot(range(epochs), losses, label="Loss", color="red")
+            plt.xlabel("Epochs")
+            plt.ylabel("Loss")
+            plt.title("Loss Over Time")
+            plt.legend()
+
+            # Show the plots
+            plt.tight_layout()
+            plt.show()
+
+
+    def calculate_accuracy(self,actual, predicted):
+
+        predicted_classes = np.argmax(predicted, axis=0)
+        actual_classes = np.argmax(actual, axis=0)
+
+        correct_predictions = np.sum(predicted_classes == actual_classes)
+        
+        accuracy = correct_predictions / len(actual_classes)
+        
+        return accuracy
+
+    def save_model(self, dir_prefix='model'):
+        os.mkdir(dir_prefix)
+        os.chdir(dir_prefix)
         for i, layer in enumerate(self.layers):
-            np.save(f'{file_prefix}_weights_{i}.npy', layer.weights)
-            np.save(f'{file_prefix}_biases_{i}.npy', layer.biases)
+            np.save(f'weights_{i}.npy', layer.weights)
+            np.save(f'biases_{i}.npy', layer.biases)
         os.chdir("..")
     
-    def load_model(self, file_prefix='model'):
+    def load_model(self, dir_prefix='model'):
+        os.chdir(dir_prefix)
         for i, layer in enumerate(self.layers):
-            layer.weights = np.load(f'{file_prefix}_weights_{i}.npy')
-            layer.biases = np.load(f'{file_prefix}_biases_{i}.npy')
+            layer.weights = np.load(f'weights_{i}.npy')
+            layer.biases = np.load(f'biases_{i}.npy')
 
     def shuffle_data(self, X, Y):
         # X: features (input data)
