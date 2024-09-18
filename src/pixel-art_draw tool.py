@@ -1,7 +1,7 @@
 import pygame
 import numpy as np
-from network import Network
-from Button import *
+from src.network import Network
+from src.Button import *
 
 # Initialize Pygame
 pygame.init()
@@ -31,11 +31,11 @@ pygame.display.set_caption("Draw a digit")
 
 # Create an instance of the network and load the trained model
 model = Network([784, 128, 128, 10])
-model.load_model("handwritten_digits_V1.0")
+model.load("../handwritten_digits_V1.0")
 
 
-clear_canvas_button = Button("Clear",(screen_width//2 + 100,screen_height-100),5,font)
-settings_button = Button("Settings",(screen_width//2 + 250,screen_height-100),5,font)
+clear_canvas_button = Button("Clear",(screen_width//2 + 100,screen_height-40),5,font)
+settings_button = Button("Settings",(screen_width//2 + 250,screen_height-40),5,font)
 
 draw_instructions = medium_size_font.render("Left Click : draw | Right Click : Erase",True,WHITE)
 
