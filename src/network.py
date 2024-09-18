@@ -1,7 +1,5 @@
 import numpy as np
 import os
-import matplotlib.pyplot as plt
-
 class Layer:
     def __init__(self,input_size,output_size,activation_func="sigmoid"):
         self.activation_func = activation_func
@@ -91,8 +89,6 @@ class Network:
             delta = np.dot(layer.weights.T, delta)
 
     def train(self, X, Y, learnRate=0.001, epochs=1000, batch_size=100, show_training_progress=False, show_training_progress_rate=100):
-        accuracies = []
-        losses = []
 
         for epoch in range(epochs):
             shuffled_X, shuffled_Y = self.shuffle_data(X, Y)
@@ -105,42 +101,13 @@ class Network:
                 # Perform backpropagation and update weights
                 self.backpropagate(Y_batch, X_batch, learnRate)
 
-            # After each epoch, calculate loss and accuracy
             if show_training_progress:
-                predicted = self.feed_forward(X)
-                accuracy = self.calculate_accuracy(Y, predicted)
-                loss = self.cross_entropy_loss(Y, predicted)
-
-                accuracies.append(accuracy)
-                losses.append(loss)
-
                 # Print progress at the specified interval
                 if epoch % show_training_progress_rate == 0:
+                    predicted = self.feed_forward(X)
+                    accuracy = self.calculate_accuracy(Y, predicted)
+                    loss = self.cross_entropy_loss(Y, predicted)
                     print(f"Epoch {epoch}, Loss: {loss}, Accuracy: {accuracy}")
-
-        # Plotting the training progress after all epochs
-        if show_training_progress:
-            plt.figure(figsize=(12, 5))
-
-            # Plot accuracy
-            plt.subplot(1, 2, 1)
-            plt.plot(range(epochs), accuracies, label="Accuracy")
-            plt.xlabel("Epochs")
-            plt.ylabel("Accuracy")
-            plt.title("Accuracy Over Time")
-            plt.legend()
-
-            # Plot loss
-            plt.subplot(1, 2, 2)
-            plt.plot(range(epochs), losses, label="Loss", color="red")
-            plt.xlabel("Epochs")
-            plt.ylabel("Loss")
-            plt.title("Loss Over Time")
-            plt.legend()
-
-            # Show the plots
-            plt.tight_layout()
-            plt.show()
 
 
     def calculate_accuracy(self,actual, predicted):
