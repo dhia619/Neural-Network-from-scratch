@@ -1,7 +1,8 @@
 import pygame
 import numpy as np
-from src.network import Network
-from src.Button import *
+from network import Network
+from Button import *
+import os
 
 # Initialize Pygame
 pygame.init()
@@ -30,8 +31,12 @@ screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Draw a digit")
 
 # Create an instance of the network and load the trained model
-model = Network([784, 128, 128, 10])
-model.load("../handwritten_digits_V1.0")
+model = Network([784, 20, 20, 10])
+# Get the current directory of the script being run
+current_dir = os.path.dirname(os.path.realpath(__file__))
+# Build the path relative to the script location
+model_path = os.path.join(current_dir, "../models/handwritten_digits_V1.0")
+model.load(model_path)
 
 
 clear_canvas_button = Button("Clear",(screen_width//2 + 100,screen_height-40),5,font)

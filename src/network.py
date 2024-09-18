@@ -154,26 +154,26 @@ class Network:
         
         return accuracy
 
-    def save(self, dir_prefix='model'):
+    def save(self, dir_path='model'):
         while True:
-            if os.path.exists(dir_prefix):
+            if os.path.exists(dir_path):
                 answer = input("directory exists . [R]eplace ? [C]hange Name ?")
                 if answer.lower() == "c":
-                    dir_prefix = input("enter a different name")
+                    dir_path = input("enter a different name")
                 else:
-                    os.rmdir(dir_prefix)
+                    os.rmdir(dir_path)
                     break
             else:break
         
-        os.mkdir(dir_prefix)
-        os.chdir(dir_prefix)
+        os.mkdir(dir_path)
+        os.chdir(dir_path)
         for i, layer in enumerate(self.layers):
             np.save(f'weights_{i}.npy', layer.weights)
             np.save(f'biases_{i}.npy', layer.biases)
         os.chdir("..")
     
-    def load(self, dir_prefix='model'):
-        os.chdir(dir_prefix)
+    def load(self, dir_path='model'):
+        os.chdir(dir_path)
         for i, layer in enumerate(self.layers):
             layer.weights = np.load(f'weights_{i}.npy')
             layer.biases = np.load(f'biases_{i}.npy')
