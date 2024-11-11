@@ -88,7 +88,7 @@ class Network:
 
             delta = np.dot(layer.weights.T, delta)
 
-    def train(self, X, Y, learnRate=0.001, epochs=1000, batch_size=100, show_training_progress=False, show_training_progress_rate=100):
+    def train(self, X, Y, learnRate=0.001, epochs=1000, batch_size=16, show_training_progress=False, show_training_progress_rate=100):
 
         for epoch in range(epochs):
             shuffled_X, shuffled_Y = self.shuffle_data(X, Y)
@@ -132,6 +132,7 @@ class Network:
                     break
             else:break
         
+        os.chdir("../models/")
         os.mkdir(dir_path)
         os.chdir(dir_path)
         for i, layer in enumerate(self.layers):
